@@ -1,0 +1,7 @@
+target/
+.mvn/
+!.mvn/wrapper/maven-wrapper.jar
+.git
+.gitignore
+Dockerfile
+README.md
