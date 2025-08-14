@@ -1,6 +1,5 @@
 package br.jus.tjm.bsm.service;
 
-import br.jus.tjm.bsm.dto.IndexadorRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.RequestOptions;
