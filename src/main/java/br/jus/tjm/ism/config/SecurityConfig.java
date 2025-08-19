@@ -1,4 +1,4 @@
-package br.jus.tjm.bsm.config;
+package br.jus.tjm.ism.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

@@ -1,4 +1,4 @@
-package br.jus.tjm.bsm.config;
+package br.jus.tjm.ism.config;
 
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;

@@ -1,4 +1,4 @@
-package br.jus.tjm.bsm.service;
+package br.jus.tjm.ism.service;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
