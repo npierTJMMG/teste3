@@ -1,4 +1,4 @@
-package br.jus.tjm.bsm.service;
+package br.jus.tjm.ism.service;
 
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;

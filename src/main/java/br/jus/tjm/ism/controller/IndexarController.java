@@ -1,6 +1,6 @@
-package br.jus.tjm.bsm.controller;
+package br.jus.tjm.ism.controller;
 
-import br.jus.tjm.bsm.service.IndexadorService;
+import br.jus.tjm.ism.service.IndexadorService;
 
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
