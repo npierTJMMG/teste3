@@ -42,8 +42,11 @@ public class IndexadorService {
 
             String inicio = ontem.format(fmt) + "T01%3A17%3A00.000";
 
-            ListaProcessosResponse resposta =
-                    datalakeProcessosApiService.getListaProcessosAtualizados(tribunal, inicio, null);
+            ListaProcessosResponse resposta = datalakeProcessosApiService.getListaProcessosAtualizados(
+                tribunal, 
+                inicio,
+                null
+            );
 
             return ResponseEntity.ok(resposta); // HTTP 200 + body
         } catch (Exception e) {
