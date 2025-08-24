@@ -8,7 +8,6 @@ public record ProcessoResumo(
         String id,
         String numeroProcesso,
         int nivelSigilo,
-        List<Classe> classe,
-        List<Assunto> assunto,
+        List<Tramitacao> tramitacoes,
         OrgaoJulgador orgaoJulgador
 ) {}

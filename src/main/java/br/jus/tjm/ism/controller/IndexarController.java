@@ -19,12 +19,10 @@ public class IndexarController {
 
     @GetMapping
     public ResponseEntity<?> indexarSentenca(
-        @RequestParam("tribunal") String tribunal,
-        @RequestParam("dth_inicio") String dthInicio,
-        @RequestParam("dth_fim") String dthFim
+        @RequestParam("tribunal") String tribunal
     ) {
         try {
-            return ResponseEntity.ok(indexadorService.indexar(tribunal,dthInicio,dthFim));
+            return ResponseEntity.ok(indexadorService.indexarTribunaisMilitaresDiario(tribunal));
         } catch (Exception ex) {
             return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
                 .body("Erro ao realizar indexação: " + ex.getMessage());

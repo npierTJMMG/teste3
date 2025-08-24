@@ -9,7 +9,11 @@ import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.sort.SortOrder;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+
+import br.jus.tjm.ism.dto.ListaProcessosResponse;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -31,12 +35,20 @@ public class IndexadorService {
         this.datalakeProcessosApiService = datalakeProcessosApiService;
     }
 
-    public void indexarTribunaisMilitaresDiario(String tribunal){
-        LocalDate ontem = LocalDate.now().minusDays(1);
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    public ResponseEntity<ListaProcessosResponse> indexarTribunaisMilitaresDiario(String tribunal){
+        try {
+            LocalDate ontem = LocalDate.now().minusDays(1);
+            DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-        // Concatena o sufixo para setar o horário
-        String ontemStr = ontem.format(formatter) + "T01%3A17%3A00.000";
+            String inicio = ontem.format(fmt) + "T01%3A17%3A00.000";
 
+            ListaProcessosResponse resposta =
+                    datalakeProcessosApiService.getListaProcessosAtualizados(tribunal, inicio, null);
+
+            return ResponseEntity.ok(resposta); // HTTP 200 + body
+        } catch (Exception e) {
+            // Logar exceção se quiser
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 }
