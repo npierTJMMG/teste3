@@ -1,6 +1,7 @@
 package br.jus.tjm.ism.service;
 
 import java.net.URI;
+import java.util.List;
 import java.util.Objects;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -13,6 +14,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import br.jus.tjm.ism.dto.ListaProcessosResponse;
+import br.jus.tjm.ism.dto.ProcessoResumo;
 
 @Service
 public class DatalakeProcessosApiService {
@@ -41,7 +43,6 @@ public class DatalakeProcessosApiService {
             builder.queryParam("dataHoraAtualizacaoFim", dataHoraAtualizacaoFim);
         }
 
-        // true => preserva valores já codificados (evita double-encoding)
         URI uri = builder.build(true).toUri();
 
         HttpHeaders headers = new HttpHeaders();
@@ -62,6 +63,16 @@ public class DatalakeProcessosApiService {
                 throw new IllegalStateException("Chamada retornou status " + resp.getStatusCodeValue());
             }
 
+            ListaProcessosResponse body = resp.getBody();
+            
+            List<ProcessoResumo> listaProcessos = body.content();
+
+            int total = body.total();
+            int maxElementsSize = body.maxElementsSize();
+            int loops = (int) Math.ceil((double) total / maxElementsSize);
+
+            this.getSentencas(listaProcessos);
+
             return Objects.requireNonNull(resp.getBody(), "Resposta sem corpo");
         } catch (RestClientException e) {
             // Ajuste para seu logger/exception handler
@@ -69,7 +80,19 @@ public class DatalakeProcessosApiService {
         }
     }
 
-    public ResponseEntity<byte[]> getListaDocumentos(
+    private void getSentencas(
+        List<ProcessoResumo> listaProcessos
+    ) {
+        for (ProcessoResumo processo : listaProcessos) {
+            String id = processo.id();
+            System.out.println("ID do processo: " + id);
+            // aqui você pode fazer o que precisar com o id
+
+            this.getListaDocumentos(id);
+        }
+    }
+
+    private ResponseEntity<byte[]> getListaDocumentos(
         String numProcesso
     ) {
         String url = String.format(

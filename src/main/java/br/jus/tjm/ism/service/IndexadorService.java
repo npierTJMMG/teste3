@@ -44,8 +44,8 @@ public class IndexadorService {
 
             ListaProcessosResponse resposta = datalakeProcessosApiService.getListaProcessosAtualizados(
                 tribunal, 
-                inicio,
-                null
+                "2020-08-23T01%3A17%3A00.000",
+                 null
             );
 
             return ResponseEntity.ok(resposta); // HTTP 200 + body
