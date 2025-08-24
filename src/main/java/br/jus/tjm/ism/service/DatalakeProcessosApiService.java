@@ -17,14 +17,14 @@ public class DatalakeProcessosApiService {
         this.keycloakTokenService = keycloakTokenService;
     }
 
-    public ResponseEntity<byte[]> getListaProcessos(
+    public ResponseEntity<byte[]> getListaProcessosAtualizados(
         String tribunal,
         String dataHoraAtualizacaoInicio,
         String dataHoraAtualizacaoFim
     ) {
         String url = String.format(
-            "%s?instancia=PRIMEIRO_GRAU&tribunal=%s&dataHoraAtualizacaoInicio=%s&dataHoraAtualizacaoFim=%s", 
-            apiBaseUrl, tribunal, dataHoraAtualizacaoInicio, dataHoraAtualizacaoFim
+            "%s?instancia=PRIMEIRO_GRAU&tribunal=%s&dataHoraAtualizacaoInicio=%s", 
+            apiBaseUrl, tribunal, dataHoraAtualizacaoInicio
         );
 
         RestTemplate restTemplate = new RestTemplate();

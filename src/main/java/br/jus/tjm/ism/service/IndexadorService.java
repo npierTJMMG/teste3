@@ -11,6 +11,9 @@ import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.sort.SortOrder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
 import java.io.IOException;
 import java.util.*;
 
@@ -18,8 +21,22 @@ import java.util.*;
 public class IndexadorService {
 
     private final RestHighLevelClient client;
+    private final DatalakeProcessosApiService datalakeProcessosApiService;
 
-    public IndexadorService(RestHighLevelClient client) {
+    public IndexadorService(
+        RestHighLevelClient client,
+        DatalakeProcessosApiService datalakeProcessosApiService
+    ) {
         this.client = client;
+        this.datalakeProcessosApiService = datalakeProcessosApiService;
+    }
+
+    public void indexarTribunaisMilitaresDiario(String tribunal){
+        LocalDate ontem = LocalDate.now().minusDays(1);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+        // Concatena o sufixo para setar o horário
+        String ontemStr = ontem.format(formatter) + "T01%3A17%3A00.000";
+
     }
 }
