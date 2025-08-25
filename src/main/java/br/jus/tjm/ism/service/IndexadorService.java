@@ -42,7 +42,7 @@ public class IndexadorService {
 
             String inicio = ontem.format(fmt) + "T01%3A17%3A00.000";
 
-            ListaProcessosResponse resposta = datalakeProcessosApiService.getListaProcessosAtualizados(
+            ListaProcessosResponse resposta = datalakeProcessosApiService.indexarSentencasProcessosAtualizados(
                 tribunal, 
                 "2020-08-23T01%3A17%3A00.000",
                  null

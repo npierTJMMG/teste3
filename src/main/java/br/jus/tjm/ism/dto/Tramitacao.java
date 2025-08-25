@@ -6,5 +6,6 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record Tramitacao(
         List<Classe> classe,
-        List<Assunto> assunto
+        List<Assunto> assunto,
+        OrgaoJulgador orgaoJulgador
 ) {}

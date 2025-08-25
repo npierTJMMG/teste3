@@ -7,7 +7,7 @@ import java.util.List;
 public record ProcessoResumo(
         String id,
         String numeroProcesso,
+        String siglaTribunal,
         int nivelSigilo,
-        List<Tramitacao> tramitacoes,
-        OrgaoJulgador orgaoJulgador
+        List<Tramitacao> tramitacoes
 ) {}

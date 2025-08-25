@@ -5,5 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record Documentos(
         String id,
-        TipoDocumento tipoDocumento
+        String nivelSigilo,
+        String dataHoraJuntada,
+        TipoDocumento tipo
 ) {}
