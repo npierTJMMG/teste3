@@ -8,6 +8,7 @@ opensearch:
   scheme: ${OPENSEARCH_SCHEME:http}
   username: ${OPENSEARCH_USERNAME:admin}
   password: ${OPENSEARCH_PASSWORD:admin}
+  index: ${OPENSEARCH_INDEX:sentencas}
   
 keycloak:
   auth-server-url: ${KEYCLOAK_AUTH_SERVER_URL:https://sso.stg.cloud.pje.jus.br/auth/realms/pje/protocol/openid-connect/token}

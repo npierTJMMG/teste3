@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.Set;
 import java.util.List;
 import java.util.Objects;
+import java.time.*;
+import java.time.format.DateTimeFormatter;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -22,6 +24,8 @@ import br.jus.tjm.ism.dto.ListaProcessosResponse;
 import br.jus.tjm.ism.dto.ListaSentencas;
 import br.jus.tjm.ism.dto.ProcessoResumo;
 import br.jus.tjm.ism.dto.ProcessoResumoTratado;
+import br.jus.tjm.ism.dto.SentencaIndex;
+
 
 @Service
 public class DatalakeProcessosApiService {
@@ -30,9 +34,11 @@ public class DatalakeProcessosApiService {
     private String apiBaseUrl;
 
     private final KeycloakTokenService keycloakTokenService;
+    private final OpenSearchService openSearchService;
 
-    public DatalakeProcessosApiService(KeycloakTokenService keycloakTokenService) {
+    public DatalakeProcessosApiService(KeycloakTokenService keycloakTokenService,OpenSearchService openSearchService) {
         this.keycloakTokenService = keycloakTokenService;
+        this.openSearchService = openSearchService;
     }
 
     public ListaProcessosResponse indexarSentencasProcessosAtualizados(
@@ -101,16 +107,16 @@ public class DatalakeProcessosApiService {
             List<Documentos> listaDocumentos = bodyListaDocumentos.documentos();
 
             ListaSentencas listaSentencas = this.filtrarSentencas(listaDocumentos);
-            List<Documentos> publicas = listaSentencas.sentencasPublicas();
-            List<Documentos> sigilosas = listaSentencas.sentencasSigilosas();
+            Documentos publicas = listaSentencas.sentencaPublica();
+            Documentos sigilosas = listaSentencas.sentencaSigilosa();
 
             ProcessoResumoTratado processoToIndex = this.getDadosProcessoIndexacao(processo);
 
-            if (publicas != null && !publicas.isEmpty()) {
+            if (publicas != null) {
                 this.indexarSentencasPublicas(processoToIndex,publicas);
             }
 
-            if (sigilosas != null && !sigilosas.isEmpty()) {
+            if (sigilosas != null) {
                 Integer as =1;
             }
         }
@@ -144,56 +150,80 @@ public class DatalakeProcessosApiService {
     ) {
         Set<Integer> codigosAceitos = Set.of(550, 795, 796); //Sentença - Sentença (Outras) - Sentença Normativa
         
-        ListaSentencas listaSentencas = new ListaSentencas(new ArrayList<>(), new ArrayList<>());
+        Documentos sentencaPublica  = null;
+        Documentos sentencaSigilosa = null;
 
         for (Documentos documento : listaDocumentos) {
             if (documento != null && documento.tipo() != null && codigosAceitos.contains(documento.tipo().codigo())) {
 
                 if (documento.nivelSigilo().equals("PUBLICO")){
-                    listaSentencas.sentencasPublicas().add(documento);
+                    sentencaPublica = documento;
                 } else {                    
-                    listaSentencas.sentencasSigilosas().add(documento);
+                    sentencaSigilosa = documento;
                 }
             }
         }
 
+        ListaSentencas base = ListaSentencas.vazia(); // new Documentos(), new Documentos()
+        ListaSentencas listaSentencas = new ListaSentencas(
+                sentencaPublica  != null ? sentencaPublica  : base.sentencaPublica(),
+                sentencaSigilosa != null ? sentencaSigilosa : base.sentencaSigilosa()
+        );
+
         return listaSentencas;
     }
 
-    public ResponseEntity<byte[]> getDocumentoTexto(
-        String numProcesso,
-        String idDocumento
-    ) {
-        String url = String.format(
-            "%s/%s/documentos/%s/texto", 
-            apiBaseUrl, numProcesso,idDocumento
-        );
+    public String getDocumentoTexto(String numProcesso, String idDocumento) {
+        String url = String.format("%s/%s/documentos/%s/texto", apiBaseUrl, numProcesso, idDocumento);
 
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Bearer " + keycloakTokenService.getAccessToken());
-        
+        headers.setBearerAuth(keycloakTokenService.getAccessToken());
+        headers.setAccept(List.of(MediaType.TEXT_PLAIN, MediaType.ALL));
+
         HttpEntity<Void> entity = new HttpEntity<>(headers);
 
-        return restTemplate.exchange(url, HttpMethod.GET, entity, byte[].class);
+        ResponseEntity<String> resp = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+
+        if (!resp.getStatusCode().is2xxSuccessful() || resp.getBody() == null) {
+            throw new IllegalStateException("Falha ao obter texto: " + resp.getStatusCode());
+        }
+
+        //return decodeBytes(resp.getBody(), resp.getHeaders().getContentType());
+        return resp.getBody();
     }
+
+    private static String decodeBytes(byte[] bytes, @org.springframework.lang.Nullable MediaType contentType) {
+        if (bytes.length == 0) return "";
+
+        // remove BOM UTF-8 se houver
+        if (bytes.length >= 3 && (bytes[0] & 0xFF) == 0xEF && (bytes[1] & 0xFF) == 0xBB && (bytes[2] & 0xFF) == 0xBF) {
+            bytes = java.util.Arrays.copyOfRange(bytes, 3, bytes.length);
+        }
+
+        java.nio.charset.Charset cs =
+            (contentType != null && contentType.getCharset() != null)
+                ? contentType.getCharset()
+                : java.nio.charset.StandardCharsets.UTF_8; // fallback inicial
+
+        String s = new String(bytes, cs);
+
+        // se vier caracteres de substituição, tente ISO-8859-1 como fallback
+        if (s.indexOf('\uFFFD') >= 0) {
+            s = new String(bytes, java.nio.charset.StandardCharsets.ISO_8859_1);
+        }
+
+        return s;
+    }
+
 
     private ProcessoResumoTratado getDadosProcessoIndexacao(ProcessoResumo processo) {
         String desTribunal = processo.siglaTribunal(); 
         String numProcesso = processo.numeroProcesso();
+        String idProcesso = processo.id();
 
         var t0 = (processo.tramitacoes() != null && !processo.tramitacoes().isEmpty())
                 ? processo.tramitacoes().get(0) : null;
-
-        Integer idClasse = null;
-        String desClasse = null;
-        if (t0 != null && t0.classe() != null && !t0.classe().isEmpty()) {
-            var c0 = t0.classe().get(0);
-            if (c0 != null) {
-                idClasse = c0.codigo();
-                desClasse = c0.descricao();
-            }
-        }
 
         Integer idAssuntoPrincipal = null;
         String desAssuntoPrincipal = null;
@@ -218,13 +248,13 @@ public class DatalakeProcessosApiService {
 
         Long idOrgao = null;
         String desOrgao = null;
-        if (t0 != null && t0.orgaoJulgador() != null) {
-            idOrgao = t0.orgaoJulgador().idLocal(); 
-            desOrgao = t0.orgaoJulgador().nome();
-        }
+        Integer idClasse = null;
+        String desClasse = null;
+        
 
         return new ProcessoResumoTratado(
             desTribunal,
+            idProcesso,
             numProcesso,
             idClasse,
             desClasse,
@@ -237,10 +267,52 @@ public class DatalakeProcessosApiService {
         );
     }
 
-    private void indexarSentencasPublicas(ProcessoResumoTratado processoToIndex, List<Documentos> publicas){
-        for (Documentos sentenca : publicas) {
-            
-        }
+    private void indexarSentencasPublicas(ProcessoResumoTratado processoToIndex, Documentos publica){
+        String texto = this.getDocumentoTexto(processoToIndex.id(),publica.id());
 
+        SentencaIndex doc = this.montarSentencaIndex(processoToIndex,publica,texto);
+        openSearchService.indexarSentenca(doc);
+
+    }
+
+    private SentencaIndex montarSentencaIndex(
+            ProcessoResumoTratado p,
+            Documentos doc,
+            String texto 
+    ) {
+        // data_juntada (yyyy-MM-dd) e @timestamp (epoch seconds)
+        String dataJuntada = toDateOnly(doc.dataHoraJuntada());   // ex: "2024-05-15"
+        Long   ts          = toEpochSeconds(doc.dataHoraJuntada()); // ex: 1715769537
+
+        return new SentencaIndex(
+            p.des_tribunal(),
+            doc.id(),
+            p.num_processo(),
+            p.id_classe(),
+            p.des_classe(),
+            p.id_assunto_principal(),
+            p.des_assunto_principal(),
+            p.ids_assuntos(),
+            p.des_assuntos(),
+            p.id_orgao(),
+            p.des_orgao(),
+            dataJuntada,
+            ts,
+            texto
+        );
+    }
+
+    private static String toDateOnly(String isoLocalDateTime) {
+        if (isoLocalDateTime == null || isoLocalDateTime.isBlank()) return null;
+        // Ex.: "2024-05-15T07:58:57.156"
+        LocalDateTime ldt = LocalDateTime.parse(isoLocalDateTime, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        return ldt.toLocalDate().format(DateTimeFormatter.ISO_LOCAL_DATE); // "yyyy-MM-dd"
+    }
+
+    private static Long toEpochSeconds(String isoLocalDateTime) {
+        if (isoLocalDateTime == null || isoLocalDateTime.isBlank()) return null;
+        LocalDateTime ldt = LocalDateTime.parse(isoLocalDateTime, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        // ajuste a zona se precisar (ex.: America/Sao_Paulo). Aqui uso UTC.
+        return ldt.toEpochSecond(ZoneOffset.UTC);
     }
 }
